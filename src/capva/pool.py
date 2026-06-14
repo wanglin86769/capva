@@ -6,12 +6,12 @@ from dataclasses import dataclass
 import threading
 from typing import Dict, List, Tuple
 
-from .protocol import pvname_key
+from .protocol import format_pvname, pvname_key
 from .pv import PV
 
 
 def _pool_key_from_pv(pv: PV) -> str:
-    return f"{pv.protocol}:{pv.pvname}"
+    return format_pvname(pv.protocol, pv.pvname)
 
 
 @dataclass

@@ -15,6 +15,10 @@ def parse_protocol(pv_name: str) -> Tuple[str, str]:
     return DEFAULT_PROTOCOL, pv_name
 
 
+def format_pvname(protocol: str, clean_name: str) -> str:
+    return f"{protocol}://{clean_name}"
+
+
 def pvname_key(pvname: str) -> str:
     protocol, clean_name = parse_protocol(pvname)
-    return f"{protocol}:{clean_name}"
+    return format_pvname(protocol, clean_name)
