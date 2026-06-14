@@ -14,6 +14,7 @@ const DTYPE = {
   int8: Int8Array,
   int16: Int16Array,
   int32: Int32Array,
+  int64: BigInt64Array,
 };
 
 const JSON_PATH = path.join(__dirname, "pvdata.json");
@@ -27,7 +28,11 @@ function decodeB64arr(b64arr, b64dtype) {
     // Browser: decode base64 with atob
     // const bytes = Uint8Array.from(atob(b64arr), (c) => c.charCodeAt(0));
 
-  return Array.from(new Typed(bytes.buffer));
+  const typed = new Typed(bytes.buffer);
+  if (b64dtype === "int64") {
+    return Array.from(typed, (v) => Number(v));
+  }
+  return Array.from(typed);
 }
 
 function main() {

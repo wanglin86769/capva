@@ -33,8 +33,10 @@ def encode_array(arr: Any) -> tuple[Optional[str], Optional[str]]:
             dtype = "int8"
         elif -32768 <= min_val <= max_val <= 32767:
             dtype = "int16"
-        else:
+        elif -2147483648 <= min_val <= max_val <= 2147483647:
             dtype = "int32"
+        else:
+            dtype = "int64"
         return _numeric_array_to_base64(arr, dtype), dtype
 
     return None, None
