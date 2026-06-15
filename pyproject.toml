@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "capva"
-version = "0.1.0"
+version = "0.1.1"
 description = "EPICS PV client supporting both Channel Access and PV Access"
 readme = "README.md"
 license = {text = "MIT"}
