@@ -6,8 +6,6 @@ import json
 from dataclasses import asdict, dataclass
 from typing import Any, List, Literal, Optional, Union
 
-import numpy as np
-
 from .array_b64 import encode_array
 
 
@@ -96,7 +94,7 @@ class PVData:
     ) -> dict[str, Any]:
         if mode == "full":
             d = {k: v for k, v in asdict(self).items() if v is not None}
-            if base64_encode and isinstance(self.value, (list, np.ndarray)):
+            if base64_encode and isinstance(self.value, list):
                 b64, dtype = encode_array(self.value)
                 if b64 is not None:
                     d.pop("value", None)
@@ -108,7 +106,7 @@ class PVData:
             d: dict[str, Any] = {}
             if self.pvName is not None:
                 d["pvName"] = self.pvName
-            if base64_encode and isinstance(self.value, (list, np.ndarray)):
+            if base64_encode and isinstance(self.value, list):
                 b64, dtype = encode_array(self.value)
                 if b64 is not None:
                     d["b64arr"] = b64
