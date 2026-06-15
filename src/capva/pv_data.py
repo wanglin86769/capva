@@ -86,6 +86,9 @@ class PVData:
             and alarm.message == "Disconnected"
         )
 
+    def is_array(self) -> bool:
+        return isinstance(self.value, list)
+
     def to_dict(
         self,
         *,

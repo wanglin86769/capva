@@ -223,12 +223,21 @@ def test_create_disconnected_omits_value():
     pv = PVData.create_disconnected("motor:x")
     assert pv.value is None
     assert pv.is_disconnected()
+    assert not pv.is_array()
     wire = pv.to_dict(mode="update")
     assert wire["pvName"] == "motor:x"
     assert "value" not in wire
     assert wire["alarm"]["severity"] == 3
     assert wire["alarm"]["message"] == "Disconnected"
     json.dumps(wire)
+
+
+def test_is_array():
+    assert not PVData(pvName="X", value=1.0).is_array()
+    assert not PVData(pvName="X", value="text").is_array()
+    assert PVData(pvName="X", value=[1.0, 2.0]).is_array()
+    assert PVData(pvName="X", value=["a", "b"]).is_array()
+    assert PVData(pvName="X", value=[]).is_array()
 
 
 def test_encode_array_from_ndarray():
