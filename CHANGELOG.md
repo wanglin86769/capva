@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- `PV.monitor()` / `pvmonitor()` — optional `include_metadata=True` to parse display, control, and valueAlarm from monitor events (no extra GET).
+- `parse_ca_update` / `parse_pva_update` — optional `with_metadata` parameter; `parse_ca` / `parse_pva` unchanged.
+
 ## 0.1.1
 
 - Integer arrays beyond int32 encode as `b64dtype: int64`.
