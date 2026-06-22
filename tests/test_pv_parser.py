@@ -86,6 +86,15 @@ def test_parse_ca_update_omits_metadata():
     assert pv.timeStamp is not None
 
 
+def test_parse_ca_update_with_metadata():
+    raw = _ca_raw_scalar(with_metadata=True)
+    pv = parse_ca_update(raw, "motor:x", with_metadata=True)
+    assert pv.display is not None
+    assert pv.display.units == "mm"
+    assert pv.control is not None
+    assert pv.valueAlarm is not None
+
+
 def test_parse_ca_array_has_native_value():
     data = parse_ca(_ca_raw_array(), "wf:data")
     assert data.value == [1.0, 2.0, 3.0]
@@ -153,6 +162,25 @@ def test_parse_pva_update_omits_metadata():
     assert pv.valueAlarm is None
     assert pv.alarm is not None
     assert pv.timeStamp is not None
+
+
+def test_parse_pva_update_with_metadata():
+    raw = _pva_raw_scalar(with_metadata=True)
+    pv = parse_pva_update(raw, "pva:pv", with_metadata=True)
+    assert pv.display is not None
+    assert pv.display.units == "counts"
+    assert pv.control is not None
+    assert pv.valueAlarm is not None
+
+
+def test_parse_pva_matches_update_with_metadata():
+    raw = _pva_raw_scalar(with_metadata=True)
+    full = parse_pva(raw, "pva:pv")
+    from_update = parse_pva_update(raw, "pva:pv", with_metadata=True)
+    assert full.value == from_update.value
+    assert full.display == from_update.display
+    assert full.control == from_update.control
+    assert full.valueAlarm == from_update.valueAlarm
 
 
 def test_parse_pva_array_has_native_list():

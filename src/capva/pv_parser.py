@@ -126,9 +126,11 @@ def parse_ca(pv_obj: dict, pv_name: str) -> PVData:
     return _ca_to_pvdata(pv_obj, pv_name, with_metadata=True)
 
 
-def parse_ca_update(pv_obj: dict, pv_name: str) -> PVData:
-    """Fast CA monitor path: value, alarm, timeStamp only (no metadata)."""
-    return _ca_to_pvdata(pv_obj, pv_name, with_metadata=False)
+def parse_ca_update(
+    pv_obj: dict, pv_name: str, *, with_metadata: bool = False
+) -> PVData:
+    """CA monitor path: value, alarm, timeStamp; metadata optional."""
+    return _ca_to_pvdata(pv_obj, pv_name, with_metadata=with_metadata)
 
 
 # ---------------------------------------------------------------------------
@@ -250,6 +252,8 @@ def parse_pva(pv_obj, pv_name: Optional[str] = None) -> PVData:
     return _pva_to_pvdata(pv_obj, pv_name, with_metadata=True)
 
 
-def parse_pva_update(pv_obj, pv_name: Optional[str] = None) -> PVData:
-    """Fast PVA monitor path: value, alarm, timeStamp only (no metadata)."""
-    return _pva_to_pvdata(pv_obj, pv_name, with_metadata=False)
+def parse_pva_update(
+    pv_obj, pv_name: Optional[str] = None, *, with_metadata: bool = False
+) -> PVData:
+    """PVA monitor path: value, alarm, timeStamp; metadata optional."""
+    return _pva_to_pvdata(pv_obj, pv_name, with_metadata=with_metadata)

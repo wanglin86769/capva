@@ -55,8 +55,10 @@ class PV:
     def monitor(
         self,
         callback: Callable[[PVData], None],
+        *,
+        include_metadata: bool = False,
     ) -> MonitorHandle:
-        return self._pv.monitor(callback)
+        return self._pv.monitor(callback, include_metadata=include_metadata)
 
     def clear_monitor(self, handle: MonitorHandle) -> None:
         self._pv.clear_monitor(handle)

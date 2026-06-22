@@ -65,7 +65,9 @@ def pvinfo(
 def pvmonitor(
     pvname: str,
     callback: Callable[[PVData], None],
+    *,
+    include_metadata: bool = False,
 ) -> MonitorSession:
     pv = PV(pvname)
-    handle = pv.monitor(callback)
+    handle = pv.monitor(callback, include_metadata=include_metadata)
     return MonitorSession(pv, handle)

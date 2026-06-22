@@ -89,6 +89,8 @@ class PVAPV:
     def monitor(
         self,
         callback: Callable[[PVData], None],
+        *,
+        include_metadata: bool = False,
     ) -> MonitorHandle:
         def wrapped_callback(pva_update):
             if isinstance(pva_update, Disconnected):
@@ -96,7 +98,7 @@ class PVAPV:
                 return
             if isinstance(pva_update, Exception):
                 return
-            callback(parse_pva_update(pva_update, self.pvname))
+            callback(parse_pva_update(pva_update, self.pvname, with_metadata=include_metadata))
 
         subscription = _pva_context.monitor(
             self.pvname, wrapped_callback, notify_disconnect=True

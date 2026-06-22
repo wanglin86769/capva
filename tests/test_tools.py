@@ -79,7 +79,7 @@ def test_pvmonitor_session_close(mock_pv):
     cb = MagicMock()
     session = pvmonitor("motor:x", cb)
     assert isinstance(session, MonitorSession)
-    mock_pv[0].monitor.assert_called_once_with(cb)
+    mock_pv[0].monitor.assert_called_once_with(cb, include_metadata=False)
     mock_pv[0].close.assert_not_called()
 
     session.close()
@@ -89,6 +89,12 @@ def test_pvmonitor_session_close(mock_pv):
     session.close()
     mock_pv[0].clear_monitor.assert_called_once()
     mock_pv[0].close.assert_called_once()
+
+
+def test_pvmonitor_include_metadata(mock_pv):
+    cb = MagicMock()
+    pvmonitor("motor:x", cb, include_metadata=True)
+    mock_pv[0].monitor.assert_called_once_with(cb, include_metadata=True)
 
 
 def test_pvmonitor_separate_sessions(mock_pv):

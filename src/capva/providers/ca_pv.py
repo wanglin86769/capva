@@ -104,12 +104,14 @@ class CAPV:
     def monitor(
         self,
         callback: Callable[[PVData], None],
+        *,
+        include_metadata: bool = False,
     ) -> MonitorHandle:
         if not self._monitor_cbs:
             self._pv.connection_callbacks.append(self._on_connection_change)
 
         def wrapped_callback(**ca_kwargs):
-            callback(parse_ca_update(ca_kwargs, self.pvname))
+            callback(parse_ca_update(ca_kwargs, self.pvname, with_metadata=include_metadata))
 
         # run_now=False: CA monitor delivers an initial update on subscribe;
         # True would duplicate it via run_callback.

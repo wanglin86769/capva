@@ -31,7 +31,7 @@ flowchart TB
 ## Features
 
 - **Single API for CA and PVA** — One client for Channel Access and PV Access; capva picks the backend from the PV name so application code does not split into separate CA/PVA paths.
-- **Unified `PVData` model** — Every read and monitor callback returns the same structured snapshot (value, alarm, timeStamp, display, control, …), regardless of protocol.
+- **Unified `PVData` model** — Every read returns the same structured snapshot (value, alarm, timeStamp, display, control, …). Monitor callbacks return value, alarm, and timeStamp by default; pass `include_metadata=True` to also parse display, control, and valueAlarm from monitor events (no extra CA/PVA GET).
 - **Public interfaces: `PV`, `PVPool`, and procedural tools** — Use the object API for multi-step work on one connection, `PVPool` when several callers share a PV, or one-shot `pvget` / `pvput` / `pvinfo` / `pvmonitor` when a script only needs a single operation.
 - **Reference-counted `PVPool`** — `getPV` / `releasePV` reuse one connection per PV name; the channel closes when the last reference is released.
 - **Protocol prefixes** — `ca://…` for Channel Access, `pva://…` for PV Access, or no prefix to default to CA.
@@ -105,6 +105,8 @@ try:
             print(data.value)
 
     handle = pv.monitor(on_update)
+    # Or include display/control/valueAlarm in each monitor callback:
+    # handle = pv.monitor(on_update, include_metadata=True)
     time.sleep(30)
 finally:
     if handle is not None:
@@ -134,7 +136,7 @@ finally:
 | `mode` | Use case |
 |--------|----------|
 | `"full"` | Complete snapshot (value, alarm, timeStamp, display, control, …) |
-| `"update"` | Monitor/Web push (no metadata fields) |
+| `"update"` | Monitor/Web push (value, alarm, timeStamp; no metadata unless parsed via `include_metadata`) |
 | `"metadata"` | display / control / valueAlarm only |
 
 Set `base64_encode=True` on `"full"` or `"update"` to emit `b64arr` / `b64dtype` instead of a numeric array `value`.
