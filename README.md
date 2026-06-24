@@ -31,8 +31,10 @@ flowchart TB
 ## Features
 
 - **Single API for CA and PVA** — One client for Channel Access and PV Access; capva picks the backend from the PV name so application code does not split into separate CA/PVA paths.
-- **Unified `PVData` model** — Every read returns the same structured snapshot (value, alarm, timeStamp, display, control, …). Monitor callbacks return value, alarm, and timeStamp by default; pass `include_metadata=True` to also parse display, control, and valueAlarm from monitor events (no extra CA/PVA GET).
-- **Public interfaces: `PV`, `PVPool`, and procedural tools** — Use the object API for multi-step work on one connection, `PVPool` when several callers share a PV, or one-shot `pvget` / `pvput` / `pvinfo` / `pvmonitor` when a script only needs a single operation.
+- **Unified `PVData` model** — Every read returns the same structured snapshot (value, alarm, timeStamp, display, control, …). Monitor callbacks return value, alarm, and timeStamp by default.
+- **Raw monitor** — `monitor_raw()` delivers a `RawMonitorEvent` with the driver payload unchanged (no parsing in the EPICS callback thread). Parse later with `parse_raw_monitor_to_pvdata()`, `parse_raw_monitor_to_update_dict()`, or `parse_raw_monitor_to_metadata_dict()` when your application is ready (ideal for high-concurrency gateways).
+- **Public parser API** — `parse_raw_monitor_to_*` helpers for deferred parsing from `RawMonitorEvent`. Lower-level CA/PVA parsers live in `capva.pv_parser`.
+- **Public interfaces: `PV`, `PVPool`, and procedural tools** — Use the object API for multi-step work on one connection, `PVPool` when several callers share a PV, or one-shot `pvget` / `pvput` / `pvinfo` / `pvmonitor` / `pvmonitor_raw` when a script only needs a single operation.
 - **Reference-counted `PVPool`** — `getPV` / `releasePV` reuse one connection per PV name; the channel closes when the last reference is released.
 - **Protocol prefixes** — `ca://…` for Channel Access, `pva://…` for PV Access, or no prefix to default to CA.
 
@@ -105,13 +107,40 @@ try:
             print(data.value)
 
     handle = pv.monitor(on_update)
-    # Or include display/control/valueAlarm in each monitor callback:
-    # handle = pv.monitor(on_update, include_metadata=True)
     time.sleep(30)
 finally:
     if handle is not None:
         pv.clear_monitor(handle)
     pv.close()
+```
+
+### Raw monitor (deferred parsing)
+
+```python
+import time
+
+from capva import PV, RawMonitorEvent, parse_raw_monitor_to_update_dict, parse_raw_monitor_to_metadata_dict
+
+PV_NAME = "pva://calcExample"
+
+pending = None
+
+def on_raw(event: RawMonitorEvent):
+    global pending
+    pending = event
+
+pv = PV(PV_NAME)
+handle = pv.monitor_raw(on_raw)
+try:
+    time.sleep(1.0)
+finally:
+    pv.clear_monitor(handle)
+    pv.close()
+
+if pending is not None and not pending.disconnected:
+    update = parse_raw_monitor_to_update_dict(pending)
+    metadata = parse_raw_monitor_to_metadata_dict(pending)
+    print(update["value"], metadata.get("display"))
 ```
 
 ### PVPool
@@ -136,7 +165,7 @@ finally:
 | `mode` | Use case |
 |--------|----------|
 | `"full"` | Complete snapshot (value, alarm, timeStamp, display, control, …) |
-| `"update"` | Monitor/Web push (value, alarm, timeStamp; no metadata unless parsed via `include_metadata`) |
+| `"update"` | Monitor/Web push (value, alarm, timeStamp; metadata from `parse_raw_monitor_to_metadata_dict` when needed) |
 | `"metadata"` | display / control / valueAlarm only |
 
 Set `base64_encode=True` on `"full"` or `"update"` to emit `b64arr` / `b64dtype` instead of a numeric array `value`.
@@ -147,6 +176,7 @@ Set `base64_encode=True` on `"full"` or `"update"` to emit `b64arr` / `b64dtype`
 src/capva/
   pv.py, pv_data.py      # Public PV + PVData model
   pv_parser.py           # CA/PVA → PVData
+  monitor_raw.py         # RawMonitorEvent, parse_raw_monitor_to_* helpers
   tools.py               # pvget, pvput, pvinfo, pvmonitor
   pool.py                # PVPool
   providers/             # ca_pv, pva_pv
@@ -173,6 +203,7 @@ python examples/pv_get.py
 python examples/pv_info.py
 python examples/pv_put.py
 python examples/pv_monitor.py
+python examples/pv_monitor_raw.py
 
 # PVPool
 python examples/pool_get.py

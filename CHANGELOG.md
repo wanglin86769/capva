@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- **`monitor_raw()` / `pvmonitor_raw()`** — unparsed `RawMonitorEvent` in the EPICS callback; parse later with **`parse_raw_monitor_to_*`**.
+- **`monitor()`** — parsed `PVData` only (raw path is separate).
+- **Breaking:** removed **`include_metadata`** from `PV.monitor()` / `pvmonitor()`. Gateways should use **`monitor_raw()`** + queue + **`parse_raw_monitor_to_update_dict()`** / **`parse_raw_monitor_to_metadata_dict()`** on a dispatch thread.
+- Narrowed top-level **`capva`** exports; import `MonitorHandle`, parsers, etc. from submodules.
+
 ## 0.1.2
 
 - `PV.monitor()` / `pvmonitor()` — optional `include_metadata=True` to parse display, control, and valueAlarm from monitor events (no extra GET).
