@@ -6,7 +6,7 @@ import pytest
 
 from capva.constants import DEFAULT_IO_TIMEOUT
 from capva.pv_data import PVData, Alarm
-from capva.tools import MonitorSession, pvget, pvinfo, pvmonitor, pvput
+from capva.tools import MonitorSession, pvget, pvinfo, pvmonitor, pvmonitor_raw, pvput
 
 
 @pytest.fixture
@@ -34,6 +34,7 @@ def mock_pv():
         )
         handle = MagicMock(name="handle")
         pv.monitor = MagicMock(return_value=handle)
+        pv.monitor_raw = MagicMock(return_value=handle)
         pv.clear_monitor = MagicMock()
         pv.close = MagicMock()
         pvs.append(pv)
@@ -79,7 +80,7 @@ def test_pvmonitor_session_close(mock_pv):
     cb = MagicMock()
     session = pvmonitor("motor:x", cb)
     assert isinstance(session, MonitorSession)
-    mock_pv[0].monitor.assert_called_once_with(cb, include_metadata=False)
+    mock_pv[0].monitor.assert_called_once_with(cb)
     mock_pv[0].close.assert_not_called()
 
     session.close()
@@ -91,10 +92,10 @@ def test_pvmonitor_session_close(mock_pv):
     mock_pv[0].close.assert_called_once()
 
 
-def test_pvmonitor_include_metadata(mock_pv):
+def test_pvmonitor_raw(mock_pv):
     cb = MagicMock()
-    pvmonitor("motor:x", cb, include_metadata=True)
-    mock_pv[0].monitor.assert_called_once_with(cb, include_metadata=True)
+    pvmonitor_raw("motor:x", cb)
+    mock_pv[0].monitor_raw.assert_called_once_with(cb)
 
 
 def test_pvmonitor_separate_sessions(mock_pv):

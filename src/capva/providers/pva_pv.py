@@ -3,11 +3,14 @@
 from typing import Any, Callable
 
 from p4p.client.thread import Context, Disconnected, TimeoutError
+
 from ..constants import DEFAULT_IO_TIMEOUT
+from ..exceptions import EPICSConnectionError, EPICSGetError, EPICSPutError, EPICSTimeoutError
+from ..monitor_handle import MonitorHandle
+from ..monitor_raw import RawMonitorEvent, raw_monitor_disconnected
+from ..protocol import PVA
 from ..pv_data import PVData
 from ..pv_parser import parse_pva, parse_pva_update, pva_metadata
-from ..monitor_handle import MonitorHandle
-from ..exceptions import EPICSTimeoutError, EPICSConnectionError, EPICSGetError, EPICSPutError
 
 _pva_context = Context("pva", nt=False)
 
@@ -86,19 +89,33 @@ class PVAPV:
         info.update(pva_metadata(pva_value))
         return info
 
-    def monitor(
+    def monitor(self, callback: Callable[[PVData], None]) -> MonitorHandle:
+        return self._monitor(callback, raw=False)
+
+    def monitor_raw(self, callback: Callable[[RawMonitorEvent], None]) -> MonitorHandle:
+        return self._monitor(callback, raw=True)
+
+    def _monitor(
         self,
-        callback: Callable[[PVData], None],
+        callback: Callable[[PVData], None] | Callable[[RawMonitorEvent], None],
         *,
-        include_metadata: bool = False,
+        raw: bool,
     ) -> MonitorHandle:
         def wrapped_callback(pva_update):
             if isinstance(pva_update, Disconnected):
-                callback(PVData.create_disconnected(self.pvname))
+                if raw:
+                    callback(raw_monitor_disconnected(PVA, self.pvname))
+                else:
+                    callback(PVData.create_disconnected(self.pvname))
                 return
             if isinstance(pva_update, Exception):
                 return
-            callback(parse_pva_update(pva_update, self.pvname, with_metadata=include_metadata))
+            if raw:
+                callback(RawMonitorEvent(protocol=PVA, pvname=self.pvname, payload=pva_update))
+            else:
+                callback(
+                    parse_pva_update(pva_update, self.pvname, with_metadata=False)
+                )
 
         subscription = _pva_context.monitor(
             self.pvname, wrapped_callback, notify_disconnect=True

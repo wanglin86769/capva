@@ -11,12 +11,51 @@ import numpy as np
 from epics import dbr
 from p4p.wrapper import Value as p4pValue
 
-from .pv_data import PVData, Alarm, TimeStamp, Display, Control, ValueAlarm
+from .pv_data import PVData, Alarm, TimeStamp, Display, Control, ValueAlarm, DISCONNECTED_ALARM
+from .array_b64 import encode_array
 
 
 def get_none_if_nan(obj, k: str):
     v = obj.get(k)
     return None if isinstance(v, float) and math.isnan(v) else v
+
+
+def _build_update_dict(
+    pv_name: Optional[str],
+    value: Any,
+    enumChoices: Optional[List[str]],
+    alarm: Alarm,
+    timestamp: TimeStamp,
+    *,
+    base64_encode: bool,
+) -> dict[str, Any]:
+    update: dict[str, Any] = {}
+    if pv_name is not None:
+        update["pvName"] = pv_name
+    if base64_encode and isinstance(value, list):
+        b64, dtype = encode_array(value)
+        if b64 is not None:
+            update["b64arr"] = b64
+            update["b64dtype"] = dtype
+        elif value is not None:
+            update["value"] = value
+    elif value is not None:
+        update["value"] = value
+    if enumChoices is not None:
+        update["enumChoices"] = enumChoices
+    if alarm is not None:
+        update["alarm"] = asdict(alarm)
+    if timestamp is not None:
+        update["timeStamp"] = asdict(timestamp)
+    return update
+
+
+def disconnected_update_dict(pvname: str) -> dict[str, Any]:
+    """Monitor update dict for a disconnected PV."""
+    return {
+        "pvName": pvname,
+        "alarm": asdict(DISCONNECTED_ALARM),
+    }
 
 
 def ca_alarm_message(status) -> str:
@@ -131,6 +170,17 @@ def parse_ca_update(
 ) -> PVData:
     """CA monitor path: value, alarm, timeStamp; metadata optional."""
     return _ca_to_pvdata(pv_obj, pv_name, with_metadata=with_metadata)
+
+
+def ca_monitor_dict(
+    pv_obj: dict, pv_name: str, *, base64_encode: bool = False
+) -> dict[str, Any]:
+    """CA monitor update as dict."""
+    value, enumChoices = _ca_parse_value(pv_obj)
+    alarm, timestamp = _ca_parse_alarm_ts(pv_obj)
+    return _build_update_dict(
+        pv_name, value, enumChoices, alarm, timestamp, base64_encode=base64_encode
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -257,3 +307,14 @@ def parse_pva_update(
 ) -> PVData:
     """PVA monitor path: value, alarm, timeStamp; metadata optional."""
     return _pva_to_pvdata(pv_obj, pv_name, with_metadata=with_metadata)
+
+
+def pva_monitor_dict(
+    pv_obj, pv_name: Optional[str] = None, *, base64_encode: bool = False
+) -> dict[str, Any]:
+    """PVA monitor update as dict."""
+    value, enumChoices = _pva_parse_value(pv_obj)
+    alarm, timestamp = _pva_parse_alarm_ts(pv_obj)
+    return _build_update_dict(
+        pv_name, value, enumChoices, alarm, timestamp, base64_encode=base64_encode
+    )

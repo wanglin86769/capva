@@ -1,21 +1,30 @@
 """EPICS Channel Access (CA) PV implementation using pyepics"""
 
+from dataclasses import dataclass
 from typing import Any, Callable
 
 import epics
 from epics.ca import ChannelAccessGetFailure, ChannelAccessException
 from ..constants import DEFAULT_IO_TIMEOUT
-from ..pv_data import PVData
-from ..pv_parser import parse_ca, parse_ca_update, ca_metadata
+from ..exceptions import EPICSConnectionError, EPICSGetError, EPICSPutError, EPICSTimeoutError
 from ..monitor_handle import MonitorHandle
-from ..exceptions import EPICSTimeoutError, EPICSConnectionError, EPICSGetError, EPICSPutError
+from ..monitor_raw import RawMonitorEvent, raw_monitor_disconnected
+from ..protocol import CA
+from ..pv_data import PVData
+from ..pv_parser import ca_metadata, parse_ca, parse_ca_update
+
+
+@dataclass
+class _MonitorEntry:
+    callback: Callable[[PVData], None] | Callable[[RawMonitorEvent], None]
+    raw: bool
 
 
 class CAPV:
     def __init__(self, pvname: str):
         self.pvname = pvname
         self._pv = epics.PV(pvname)
-        self._monitor_cbs: dict[int, Callable[[PVData], None]] = {}
+        self._monitors: dict[int, _MonitorEntry] = {}
 
     def get(self, *, timeout: float = DEFAULT_IO_TIMEOUT) -> PVData:
         if not self._pv.wait_for_connection(timeout=timeout):
@@ -94,24 +103,40 @@ class CAPV:
         info.update(ca_metadata(ca_dict))
         return info
 
+    def _notify_disconnected(self, entry: _MonitorEntry) -> None:
+        if entry.raw:
+            entry.callback(raw_monitor_disconnected(CA, self.pvname))
+        else:
+            entry.callback(PVData.create_disconnected(self.pvname))
+
     def _on_connection_change(self, *, conn=None, **kw):
         if conn:
             return
-        disconnected = PVData.create_disconnected(self.pvname)
-        for cb in self._monitor_cbs.values():
-            cb(disconnected)
+        for entry in self._monitors.values():
+            self._notify_disconnected(entry)
 
-    def monitor(
+    def monitor(self, callback: Callable[[PVData], None]) -> MonitorHandle:
+        return self._monitor(callback, raw=False)
+
+    def monitor_raw(self, callback: Callable[[RawMonitorEvent], None]) -> MonitorHandle:
+        return self._monitor(callback, raw=True)
+
+    def _monitor(
         self,
-        callback: Callable[[PVData], None],
+        callback: Callable[[PVData], None] | Callable[[RawMonitorEvent], None],
         *,
-        include_metadata: bool = False,
+        raw: bool,
     ) -> MonitorHandle:
-        if not self._monitor_cbs:
+        if not self._monitors:
             self._pv.connection_callbacks.append(self._on_connection_change)
 
+        entry = _MonitorEntry(callback=callback, raw=raw)
+
         def wrapped_callback(**ca_kwargs):
-            callback(parse_ca_update(ca_kwargs, self.pvname, with_metadata=include_metadata))
+            if raw:
+                callback(RawMonitorEvent(protocol=CA, pvname=self.pvname, payload=ca_kwargs))
+            else:
+                callback(parse_ca_update(ca_kwargs, self.pvname, with_metadata=False))
 
         # run_now=False: CA monitor delivers an initial update on subscribe;
         # True would duplicate it via run_callback.
@@ -120,10 +145,10 @@ class CAPV:
             with_ctrlvars=True,
             run_now=False,
         )
-        self._monitor_cbs[index] = callback
+        self._monitors[index] = entry
 
         if not self._pv.connected:
-            callback(PVData.create_disconnected(self.pvname))
+            self._notify_disconnected(entry)
 
         return MonitorHandle(self, index)
 
@@ -132,16 +157,16 @@ class CAPV:
             raise ValueError(
                 f"MonitorHandle does not belong to PV {self.pvname!r}"
             )
-        self._monitor_cbs.pop(handle._handle, None)
+        self._monitors.pop(handle._handle, None)
         self._pv.remove_callback(handle._handle)
-        if not self._monitor_cbs:
+        if not self._monitors:
             try:
                 self._pv.connection_callbacks.remove(self._on_connection_change)
             except ValueError:
                 pass
 
     def disconnect(self) -> None:
-        self._monitor_cbs.clear()
+        self._monitors.clear()
         try:
             self._pv.connection_callbacks.remove(self._on_connection_change)
         except ValueError:

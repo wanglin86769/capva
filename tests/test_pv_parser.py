@@ -10,6 +10,7 @@ from capva.pv_data import PVData
 from capva.pv_parser import (
     _ca_parse_metadata_fields,
     ca_metadata,
+    disconnected_update_dict,
     parse_ca,
     parse_ca_update,
     parse_pva,
@@ -258,6 +259,13 @@ def test_create_disconnected_omits_value():
     assert wire["alarm"]["severity"] == 3
     assert wire["alarm"]["message"] == "Disconnected"
     json.dumps(wire)
+
+
+def test_disconnected_update_dict_matches_pvdata():
+    pvname = "motor:x"
+    assert disconnected_update_dict(pvname) == PVData.create_disconnected(
+        pvname
+    ).to_dict(mode="update")
 
 
 def test_is_array():

@@ -20,7 +20,7 @@ def test_encode_int32_range():
     assert b64 is not None
     assert dtype == "int32"
     decoded = _decode_round_trip(b64, dtype, arr.size)
-    assert decoded == arr
+    assert np.array_equal(decoded, arr)
 
 
 def test_encode_int32_upper_bound():
@@ -36,7 +36,7 @@ def test_encode_int64_above_int32():
     b64, dtype = encode_array(arr)
     assert dtype == "int64"
     decoded = _decode_round_trip(b64, dtype, arr.size)
-    assert decoded == arr
+    assert np.array_equal(decoded, arr)
 
 
 def test_encode_int32_lower_bound():
@@ -67,12 +67,12 @@ def test_encode_int8_int16_branches():
     arr8 = np.array([-1, 0, 127], dtype=np.int32)
     b64, dtype = encode_array(arr8)
     assert dtype == "int8"
-    assert _decode_round_trip(b64, dtype, arr8.size) == arr8
+    assert np.array_equal(_decode_round_trip(b64, dtype, arr8.size), arr8)
 
     arr16 = np.array([1000, -2000], dtype=np.int32)
     b64, dtype = encode_array(arr16)
     assert dtype == "int16"
-    assert _decode_round_trip(b64, dtype, arr16.size) == arr16
+    assert np.array_equal(_decode_round_trip(b64, dtype, arr16.size), arr16)
 
 
 def test_encode_float64():
@@ -80,7 +80,7 @@ def test_encode_float64():
     b64, dtype = encode_array(arr)
     assert dtype == "float64"
     decoded = _decode_round_trip(b64, dtype, arr.size)
-    assert decoded == arr
+    assert np.array_equal(decoded, arr)
 
 
 def test_encode_empty_returns_none():

@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from .constants import DEFAULT_IO_TIMEOUT
 from .monitor_handle import MonitorHandle
+from .monitor_raw import RawMonitorEvent
 from .pv import PV
 from .pv_data import PVData
 
@@ -65,9 +66,16 @@ def pvinfo(
 def pvmonitor(
     pvname: str,
     callback: Callable[[PVData], None],
-    *,
-    include_metadata: bool = False,
 ) -> MonitorSession:
     pv = PV(pvname)
-    handle = pv.monitor(callback, include_metadata=include_metadata)
+    handle = pv.monitor(callback)
+    return MonitorSession(pv, handle)
+
+
+def pvmonitor_raw(
+    pvname: str,
+    callback: Callable[[RawMonitorEvent], None],
+) -> MonitorSession:
+    pv = PV(pvname)
+    handle = pv.monitor_raw(callback)
     return MonitorSession(pv, handle)

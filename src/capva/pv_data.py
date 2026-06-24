@@ -18,6 +18,10 @@ class Alarm:
     message: str = "NO_ALARM"
 
 
+# org.epics.vtype.Alarm.disconnected(): INVALID(3), CLIENT(7), "Disconnected"
+DISCONNECTED_ALARM = Alarm(severity=3, status=7, message="Disconnected")
+
+
 @dataclass
 class TimeStamp:
     secondsPastEpoch: int = 0
@@ -70,21 +74,10 @@ class PVData:
 
     @classmethod
     def create_disconnected(cls, pvname: str) -> "PVData":
-        # Alarm shape aligned with org.epics.vtype.Alarm.disconnected():
-        # INVALID(3), CLIENT(7), "Disconnected"
-        return cls(
-            pvName=pvname,
-            alarm=Alarm(severity=3, status=7, message="Disconnected"),
-        )
+        return cls(pvName=pvname, alarm=DISCONNECTED_ALARM)
 
     def is_disconnected(self) -> bool:
-        alarm = self.alarm
-        return (
-            alarm is not None
-            and alarm.severity == 3
-            and alarm.status == 7
-            and alarm.message == "Disconnected"
-        )
+        return self.alarm == DISCONNECTED_ALARM
 
     def is_array(self) -> bool:
         return isinstance(self.value, list)

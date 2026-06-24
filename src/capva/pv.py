@@ -5,6 +5,7 @@ from typing import Any, Callable
 from .constants import DEFAULT_IO_TIMEOUT
 from .pv_data import PVData
 from .monitor_handle import MonitorHandle
+from .monitor_raw import RawMonitorEvent
 from .protocol import parse_protocol, CA, PVA
 from .providers.ca_pv import CAPV
 from .providers.pva_pv import PVAPV
@@ -52,13 +53,11 @@ class PV:
     def info(self, *, timeout: float = DEFAULT_IO_TIMEOUT) -> dict[str, Any]:
         return self._pv.info(timeout=timeout)
 
-    def monitor(
-        self,
-        callback: Callable[[PVData], None],
-        *,
-        include_metadata: bool = False,
-    ) -> MonitorHandle:
-        return self._pv.monitor(callback, include_metadata=include_metadata)
+    def monitor(self, callback: Callable[[PVData], None]) -> MonitorHandle:
+        return self._pv.monitor(callback)
+
+    def monitor_raw(self, callback: Callable[[RawMonitorEvent], None]) -> MonitorHandle:
+        return self._pv.monitor_raw(callback)
 
     def clear_monitor(self, handle: MonitorHandle) -> None:
         self._pv.clear_monitor(handle)
