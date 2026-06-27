@@ -13,6 +13,8 @@ from .pv_parser import (
     pva_metadata,
     pva_monitor_dict,
     parse_pva_update,
+    ca_payload_is_array,
+    pva_payload_is_array,
 )
 
 
@@ -30,6 +32,15 @@ def raw_monitor_disconnected(
     protocol: Literal["ca", "pva"], pvname: str
 ) -> RawMonitorEvent:
     return RawMonitorEvent(protocol=protocol, pvname=pvname, disconnected=True)
+
+
+def raw_monitor_is_array(event: RawMonitorEvent) -> bool:
+    """Return True when the monitor value is an array (matches PVData.is_array())."""
+    if event.disconnected or event.payload is None:
+        return False
+    if event.protocol == CA:
+        return ca_payload_is_array(event.payload)
+    return pva_payload_is_array(event.payload)
 
 
 def parse_raw_monitor_to_pvdata(

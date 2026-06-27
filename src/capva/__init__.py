@@ -10,6 +10,7 @@ from .monitor_raw import (
     parse_raw_monitor_to_pvdata,
     parse_raw_monitor_to_update_dict,
     parse_raw_monitor_to_metadata_dict,
+    raw_monitor_is_array,
 )
 from .pool import PVPool
 from .pv import PV
@@ -30,6 +31,7 @@ __all__ = [
     "parse_raw_monitor_to_pvdata",
     "parse_raw_monitor_to_update_dict",
     "parse_raw_monitor_to_metadata_dict",
+    "raw_monitor_is_array",
     "pvget",
     "pvput",
     "pvinfo",

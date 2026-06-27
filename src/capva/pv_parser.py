@@ -86,6 +86,15 @@ def _ca_parse_value(pv_obj: dict) -> tuple[Any, Optional[List[str]]]:
     return value, enumChoices
 
 
+def ca_payload_is_array(pv_obj: dict) -> bool:
+    value = pv_obj.get("value")
+    if isinstance(value, list):
+        return True
+    if isinstance(value, np.ndarray):
+        return value.ndim >= 1
+    return False
+
+
 def _ca_parse_alarm_ts(pv_obj: dict) -> tuple[Alarm, TimeStamp]:
     status = _ca_normalize(pv_obj.get("status", 0))
     alarm = Alarm(
@@ -211,6 +220,23 @@ def _pva_parse_value(pv_obj) -> tuple[Any, Optional[List[str]]]:
         )
 
     return value, enumChoices
+
+
+def pva_payload_is_array(pv_obj) -> bool:
+    value_field = pv_obj.get("value")
+    if isinstance(value_field, (int, float, str)):
+        return False
+    if (
+        isinstance(value_field, p4pValue)
+        and value_field.has("index")
+        and value_field.has("choices")
+    ):
+        return False
+    if isinstance(value_field, list):
+        return True
+    if isinstance(value_field, np.ndarray):
+        return value_field.ndim >= 1
+    return False
 
 
 def _pva_parse_alarm_ts(pv_obj) -> tuple[Alarm, TimeStamp]:

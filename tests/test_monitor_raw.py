@@ -8,8 +8,9 @@ from capva.monitor_raw import (
     parse_raw_monitor_to_pvdata,
     parse_raw_monitor_to_update_dict,
     parse_raw_monitor_to_metadata_dict,
+    raw_monitor_is_array,
 )
-from capva.protocol import CA
+from capva.protocol import CA, PVA
 from capva.pv_parser import ca_alarm_message
 
 
@@ -93,3 +94,85 @@ def test_parse_raw_monitor_to_update_dict_disconnected():
     expected = parse_raw_monitor_to_pvdata(event).to_dict(mode="update")
     assert parse_raw_monitor_to_update_dict(event) == expected
     assert expected["alarm"]["message"] == "Disconnected"
+
+
+class _PvaEnumValue:
+    def has(self, key: str) -> bool:
+        return key in ("index", "choices")
+
+    def get(self, key: str):
+        return {"index": 2, "choices": ["OFF", "ON"]}[key]
+
+
+@pytest.mark.parametrize(
+    ("event",),
+    [
+        (RawMonitorEvent(protocol=CA, pvname="TEST:PV", payload=_ca_raw()),),
+        (
+            RawMonitorEvent(
+                protocol=CA,
+                pvname="TEST:PV",
+                payload={**_ca_raw(), "value": np.arange(3, dtype=np.float64)},
+            ),
+        ),
+        (
+            RawMonitorEvent(
+                protocol=CA,
+                pvname="TEST:PV",
+                payload={**_ca_raw(), "value": [1.0, 2.0]},
+            ),
+        ),
+        (
+            RawMonitorEvent(
+                protocol=CA,
+                pvname="TEST:PV",
+                payload={**_ca_raw(), "value": [1.0]},
+            ),
+        ),
+        (
+            RawMonitorEvent(
+                protocol=CA,
+                pvname="TEST:PV",
+                payload={**_ca_raw(), "value": np.array(3.0)},
+            ),
+        ),
+        (RawMonitorEvent(protocol=CA, pvname="TEST:PV", disconnected=True),),
+        (
+            RawMonitorEvent(
+                protocol=PVA,
+                pvname="TEST:PV",
+                payload={"value": 1.23, "alarm": {}, "timeStamp": {}},
+            ),
+        ),
+        (
+            RawMonitorEvent(
+                protocol=PVA,
+                pvname="TEST:PV",
+                payload={"value": _PvaEnumValue(), "alarm": {}, "timeStamp": {}},
+            ),
+        ),
+        (
+            RawMonitorEvent(
+                protocol=PVA,
+                pvname="TEST:PV",
+                payload={"value": [1.0, 2.0], "alarm": {}, "timeStamp": {}},
+            ),
+        ),
+        (
+            RawMonitorEvent(
+                protocol=PVA,
+                pvname="TEST:PV",
+                payload={
+                    "value": np.arange(2, dtype=np.float64),
+                    "alarm": {},
+                    "timeStamp": {},
+                },
+            ),
+        ),
+    ],
+)
+def test_raw_monitor_is_array_matches_pvdata_is_array(event: RawMonitorEvent) -> None:
+    if event.disconnected:
+        assert raw_monitor_is_array(event) is False
+        return
+    assert raw_monitor_is_array(event) == parse_raw_monitor_to_pvdata(event).is_array()
