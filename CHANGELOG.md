@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- **`raw_monitor_is_array()`** — check whether a monitor value is an array without full parsing.
+
 ## 0.2.0
 
 - **`monitor_raw()` / `pvmonitor_raw()`** — unparsed `RawMonitorEvent` in the EPICS callback; parse later with **`parse_raw_monitor_to_*`**.
